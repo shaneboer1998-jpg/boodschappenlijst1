@@ -46,18 +46,18 @@ st.set_page_config(page_title="Slimme Boodschappenlijst", layout="wide")
 
 st.title("🛒 Slimme Boodschappenlijst")
 
-# Session state voor herladen
+# Session state voor herladen en wijzig-modus
 if 'refresh' not in st.session_state:
     st.session_state['refresh'] = False
 
 lijst, geschiedenis = laad_data()
 
 # ---------------------------
-# Sidebar voor toevoegen
+# Product toevoegen direct op hoofdscherm
 # ---------------------------
-st.sidebar.header("Product toevoegen")
-nieuw_product = st.sidebar.text_input("Nieuw product")
-if st.sidebar.button("Toevoegen"):
+st.subheader("Voeg een nieuw product toe")
+nieuw_product = st.text_input("Typ hier een product")
+if st.button("Toevoegen"):
     if nieuw_product.strip():
         lijst.append(nieuw_product.strip())
         geschiedenis.append(nieuw_product.strip())
@@ -76,17 +76,31 @@ else:
         col1, col2, col3 = st.columns([5,1,1])
         col1.markdown(f"**{i+1}. {prod}**")
         
+        # ---------------------------
         # Product wijzigen
+        # ---------------------------
         wijzig_key = f"wijzig_{i}"
+        input_key = f"input_{i}"
+
+        if wijzig_key not in st.session_state:
+            st.session_state[wijzig_key] = False
+
+        # Toon knop om te wijzigen
         if col2.button("✏️", key=wijzig_key):
-            nieuw = st.text_input(f"Wijzig product {prod}", key=f"input_{i}")
-            if st.button("Bevestig wijziging", key=f"confirm_{i}"):
-                if nieuw.strip():
-                    lijst[i] = nieuw.strip()
-                    sla_data_op(lijst, geschiedenis)
-                    st.session_state['refresh'] = not st.session_state['refresh']
-        
+            st.session_state[wijzig_key] = not st.session_state[wijzig_key]
+
+        # Toon invoerveld alleen als wijzig-modus actief is
+        if st.session_state[wijzig_key]:
+            nieuw = st.text_input(f"Wijzig product {prod}", key=input_key)
+            if nieuw.strip() and col2.button("Bevestig wijziging", key=f"confirm_{i}"):
+                lijst[i] = nieuw.strip()
+                sla_data_op(lijst, geschiedenis)
+                st.session_state[wijzig_key] = False  # sluit wijzig-modus
+                st.session_state['refresh'] = not st.session_state['refresh']
+
+        # ---------------------------
         # Product verwijderen
+        # ---------------------------
         del_key = f"del_{i}"
         if col3.button("❌", key=del_key):
             lijst.pop(i)
